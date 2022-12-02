@@ -1,12 +1,21 @@
 let speech = new SpeechSynthesisUtterance();
+
 speech.lang = "en";
 
 let voices = [];
 window.speechSynthesis.onvoiceschanged = () => {
   voices = window.speechSynthesis.getVoices();
   speech.voice = voices[0];
+  //Thai 
+  //speech.voice = voices[46];
   let voiceSelect = document.querySelector("#voices");
-  voices.forEach((voice, i) => (voiceSelect.options[i] = new Option(voice.name, i)));
+  voices.forEach((voice, i) => {
+    voiceSelect.options[i] = new Option(voice.name, i);
+    if(voice.name.includes("Thai")){
+      voiceSelect.options[i].selected = true;
+      speech.voice = voice;
+    }
+  });
 };
 
 document.querySelector("#rate").addEventListener("input", () => {

@@ -1,17 +1,35 @@
-let speech = new SpeechSynthesisUtterance();
+// Check if speech synthesis is available
+if (!('speechSynthesis' in window)) {
+  console.log('Speech synthesis is not supported in this browser.');
+} 
 
-speech.lang = "en";
+let speech = new SpeechSynthesisUtterance();
+speech.lang = "th-TH";
+speech.rate = 1;
+speech.pitch = 1;
+speech.volume = 1;
+
 
 let voices = [];
 window.speechSynthesis.onvoiceschanged = () => {
   voices = window.speechSynthesis.getVoices();
-  speech.voice = voices[0];
-  //Thai 
+  //sort alphabetically lang
+  voices.sort((a, b) => {
+    let langA = a.lang.toUpperCase();
+    let langB = b.lang.toUpperCase();
+    if (langA < langB) {
+      return -1;
+    }
+    if (langA > langB) {
+      return 1;
+    }
+    return 0;
+  });
   //speech.voice = voices[46];
   let voiceSelect = document.querySelector("#voices");
   voices.forEach((voice, i) => {
-    voiceSelect.options[i] = new Option(voice.name, i);
-    if(voice.name.includes("Thai")){
+    voiceSelect.options[i] = new Option(voice.lang+" : "+voice.name, i);
+    if (voice.lang.includes("th")) {
       voiceSelect.options[i].selected = true;
       speech.voice = voice;
     }
@@ -42,6 +60,7 @@ document.querySelector("#voices").addEventListener("change", () => {
 
 document.querySelector("#start").addEventListener("click", () => {
   speech.text = document.querySelector("textarea").value;
+  window.speechSynthesis.cancel();
   window.speechSynthesis.speak(speech);
 });
 

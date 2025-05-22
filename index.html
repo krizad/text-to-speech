@@ -1,49 +1,198 @@
-<html lang="en">
+<!DOCTYPE html>
+<html lang="th">
 
 <head>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <script type="text/javascript"
-    src="https://unpkg.com/speech-synthesis-recorder@1.2.1/SpeechSynthesisRecorder.js"></script>
-  <!-- <link rel="stylesheet" href="index.css" /> -->
-  <title>Text to Speech</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thai Text-to-Speech</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body class="container mt-5 bg-dark">
-  <h1 class="text-light">Text to Speech</h1>
-  <p class="lead text-light mt-4 d-none">Select Voice</p>
-  <select id="voices" class="form-select bg-secondary text-light"></select>
-  <div class="d-flex mt-4 text-light">
-    <div>
-      <p class="lead">Volume</p>
-      <input type="range" min="0" max="1" value="1" step="0.1" id="volume" />
-      <span id="volume-label" class="ms-2">1</span>
-    </div>
-    <div class="mx-5">
-      <p class="lead">Rate</p>
-      <input type="range" min="0.1" max="10" value="1" id="rate" step="0.1" />
-      <span id="rate-label" class="ms-2">1</span>
-    </div>
-    <div>
-      <p class="lead">Pitch</p>
-      <input type="range" min="0" max="2" value="1" step="0.1" id="pitch" />
-      <span id="pitch-label" class="ms-2">1</span>
-    </div>
+<body class="min-vh-100 d-flex flex-column align-items-center justify-content-center p-4">
+  <h1 class="fs-2 fw-bold mb-4">Thai Text-to-Speech</h1>
+  <div class="mb-2">
   </div>
-  <textarea class="form-control bg-dark text-light mt-5" cols="30" rows="10" placeholder="Type here...">แก้ไขข้อความเพื่อให้ AI อ่านให้คุณฟัง!
-    </textarea>
-  <div class="mb-5">
-    <button id="start" class="btn btn-success mt-5 me-3">เล่น</button>
-    <button id="pause" class="btn btn-warning mt-5 me-3">หยุด</button>
-    <button id="resume" class="btn btn-info mt-5 me-3">เล่นต่อ</button>
-    <button id="cancel" class="btn btn-danger mt-5 me-3">ยกเลิก</button>
+  <textarea id="text-input" rows="4" class="form-control w-100 max-w-md mb-4" placeholder="พิมพ์ข้อความ...">
+  </textarea>
+  <div id="highlighted-text" class="w-100 max-w-md mb-4 text-center fw-medium fs-5 text-danger" style="height: 1rem;">
   </div>
-  <footer>
-    <!-- credits -->
-    <p class="text-light">Credits by <a href="https://github.com/zolomohan/text-to-speech" target="_blank">Zolo
-        Mohan</a></p>
-  </footer>
+
+  <div class="d-flex gap-2 mb-4 flex-wrap justify-content-center">
+    <button onclick="speakText()" class="btn btn-dark">
+      🔊 พูดออกเสียง
+    </button>
+    <button onclick="pauseOrResume()" class="btn btn-warning">
+      ⏸ หยุด/เล่นต่อ
+    </button>
+    <button onclick="stopSpeech()" class="btn btn-secondary">
+      ⏹ หยุดพูด
+    </button>
+    <button onclick="copyText()" class="btn btn-primary">
+      📋 คัดลอกข้อความ
+    </button>
+    <button onclick="clearText()" class="btn btn-danger">
+      ❌ ล้างข้อความ
+    </button>
+  </div>
+
+  <div class="mb-4 w-100 max-w-md">
+    <label class="form-label">เลือกภาษา:</label>
+    <select id="languageSelect" class="form-select mb-2" title="เลือกภาษา"></select>
+
+    <label class="form-label">เลือกเสียง:</label>
+    <select id="voiceSelect" class="form-select" title="เลือกเสียง"></select>
+  </div>
+
+  <div class="mb-4 w-100 max-w-md">
+    <label class="form-label">ความเร็ว:</label>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="me-2">ช้า</span>
+      <span class="ms-2">เร็ว</span>
+    </div>
+    <div class="d-flex align-items-center">
+      <input type="range" id="rate" class="form-range flex-grow-1" min="0.5" max="2" step="0.1" value="1"
+        title="ปรับความเร็ว">
+    </div>
+    <div class="text-center mt-1">ระดับ: <span id="rateValue">1</span></div>
+
+    <label class="form-label mt-3">เสียงต่ำ/สูง</label>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="me-2">ต่ำ</span>
+      <span class="ms-2">สูง</span>
+    </div>
+    <div class="d-flex align-items-center">
+      <input type="range" id="pitch" class="form-range flex-grow-1" min="0" max="2" step="0.1" value="1"
+        title="ปรับระดับเสียง">
+    </div>
+    <div class="text-center mt-1">ระดับ: <span id="pitchValue">1</span></div>
+  </div>
+
+  <p class="text-muted mt-2 small">
+    *ยังไม่สามารถดาวน์โหลดเสียงได้ (Web Speech API ไม่รองรับ)
+  </p>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const textInput = document.getElementById('text-input');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const languageSelect = document.getElementById('languageSelect');
+    const rateInput = document.getElementById('rate');
+    const pitchInput = document.getElementById('pitch');
+    const themeToggle = document.getElementById('themeToggle');
+    const highlightDiv = document.getElementById('highlighted-text');
+
+    let voices = [];
+    let utter;
+    let isPaused = false;
+
+    textInput.value = 'สวัสดีครับ ยินดีต้อนรับสู่เว็บไซต์แปลงข้อความเป็นเสียง';
+
+    // Default Thai text
+    if (!localStorage.getItem('ttsVisited')) {
+      textInput.value = 'สวัสดีครับ ยินดีต้อนรับสู่เว็บไซต์แปลงข้อความเป็นเสียง';
+      localStorage.setItem('ttsVisited', 'true');
+    }
+
+    function populateLanguages() {
+      const langs = [...new Set(window.speechSynthesis.getVoices().map(v => v.lang))];
+      languageSelect.innerHTML = '';
+      langs.sort().forEach(lang => {
+        const option = document.createElement('option');
+        option.value = lang;
+        option.textContent = lang;
+        languageSelect.appendChild(option);
+      });
+
+      const defaultLang = 'th-TH';
+      if ([...languageSelect.options].some(opt => opt.value === defaultLang)) {
+        languageSelect.value = defaultLang;
+        populateVoices();
+      }
+    }
+
+    function populateVoices() {
+      voices = window.speechSynthesis.getVoices();
+      const selectedLang = languageSelect.value;
+      voiceSelect.innerHTML = '';
+      voices
+        .filter(voice => voice.lang === selectedLang)
+        .forEach((voice, i) => {
+          const option = document.createElement('option');
+          option.value = voice.name;
+          option.textContent = `${voice.name} (${voice.lang})`;
+          voiceSelect.appendChild(option);
+        });
+    }
+
+    function speakText() {
+      stopSpeech();
+      const text = textInput.value;
+      const selectedVoice = voices.find(v => v.name === voiceSelect.value);
+      utter = new SpeechSynthesisUtterance(text);
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.lang = selectedVoice?.lang || 'th-TH';
+      utter.rate = parseFloat(rateInput.value);
+      utter.pitch = parseFloat(pitchInput.value);
+
+      utter.onboundary = (event) => {
+        if (event.name === 'word') {
+          const word = text.substring(event.charIndex, event.charIndex + event.charLength);
+          highlightDiv.textContent = word;
+        }
+      };
+
+      utter.onend = () => {
+        highlightDiv.textContent = '';
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function pauseOrResume() {
+      if (window.speechSynthesis.speaking) {
+        if (isPaused) {
+          window.speechSynthesis.resume();
+        } else {
+          window.speechSynthesis.pause();
+        }
+        isPaused = !isPaused;
+      }
+    }
+
+    function stopSpeech() {
+      if (window.speechSynthesis.speaking || isPaused) {
+        window.speechSynthesis.cancel();
+        highlightDiv.textContent = '';
+        isPaused = false;
+      }
+    }
+
+    function copyText() {
+      navigator.clipboard.writeText(textInput.value);
+      alert('คัดลอกข้อความแล้ว!');
+    }
+
+    function clearText() {
+      textInput.value = '';
+    }
+
+    window.speechSynthesis.onvoiceschanged = () => {
+      populateLanguages();
+    };
+
+    languageSelect.addEventListener('change', populateVoices);
+
+    // Update displayed values for rate and pitch
+    rateInput.addEventListener('input', () => {
+      document.getElementById('rateValue').textContent = rateInput.value;
+    });
+
+    pitchInput.addEventListener('input', () => {
+      document.getElementById('pitchValue').textContent = pitchInput.value;
+    });
+  </script>
 </body>
-<!-- script tag goes here -->
-<script src="./textToSpeech.js"></script>
 
 </html>
